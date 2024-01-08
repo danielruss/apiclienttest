@@ -40,7 +40,6 @@
             Object.assign(params, old_values)
             searchParams = new URLSearchParams(params)
             url.search = searchParams.toString();
-            console.log(url.toString())
    
             let res = await fetch(url.toString())
             let response_json = await res.json()
