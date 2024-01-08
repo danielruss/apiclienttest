@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            label {
+                display: block;
+                margin: 5px;
+            }
+            .response {
+                white-space: pre;
+            }
+        </style>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js" integrity="sha512-+BMamP0e7wn39JGL8nKAZ3yAQT2dL5oaXWr4ZYlTGkKOaoXM/Yj7c4oy50Ngz5yoUutAG17flueD4F6QpTlPng==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    </head>
+    <body>
+        <label>
+            Value 1:
+            <input type="text" id="val1">
+        </label>
+        <label>
+            Value 2:
+            <input type="text" id="val2">
+        </label>
+        <button id="apibutton">call api</button>
+        <div class="response"></div>
+    </body>
+    <script>
+        window.addEventListener("fetch",(event)=>{
+            console.log(event)
+        })
+
+        const lf = localforage.createInstance({
+            name        : 'testcache',
+            storeName   : 'cachetable'});
+
+        async function callFetch(params){
+
+            url = new URL("http://localhost:3000/echo")
+            let old_values= await lf.getItem("old_values") 
+            Object.assign(params, old_values)
+            searchParams = new URLSearchParams(params)
+            url.search = searchParams.toString();
+            console.log(url.toString())
+   
+            let res = await fetch(url.toString())
+            let response_json = await res.json()
+            if (res.status == 500){
+                await lf.setItem("old_values",params)
+            } else {
+                // clear the old values...
+                await lf.removeItem("old_values")
+            }
+
+            return {status: res.status, results:response_json}
+        }
+
+        document.getElementById("apibutton").addEventListener("click",async (event)=>{
+            let value1=document.getElementById("val1").value
+            let value2=document.getElementById("val2").value
+            let params={}
+
+            // I only have 2 keys, the user cannot change this. So tag it with the
+            // date to have unique keys.
+            if (value1.trim().length>0) params[`Value1_${new Date().toISOString() }`]=value1
+            if (value2.trim().length>0) params[`Value2_${new Date().toISOString() }`]=value2
+
+            let results = await callFetch(params)
+
+            // if the 
+            let rdiv = document.querySelector(".response")
+            rdiv.innerText=""
+            if (results.status == 200){
+                rdiv.innerText=JSON.stringify(results.results,null,4);
+            }
+
+        })
+    </script>
+</html>
